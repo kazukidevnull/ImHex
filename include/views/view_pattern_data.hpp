@@ -2,9 +2,9 @@
 
 #include <hex.hpp>
 
-#include "imgui.h"
-#include "views/view.hpp"
-#include "lang/pattern_data.hpp"
+#include <imgui.h>
+#include <hex/views/view.hpp>
+#include <hex/lang/pattern_data.hpp>
 
 #include <vector>
 #include <tuple>
@@ -16,15 +16,13 @@ namespace hex {
 
     class ViewPatternData : public View {
     public:
-        ViewPatternData(std::vector<lang::PatternData*> &patternData);
+        ViewPatternData();
         ~ViewPatternData() override;
 
         void drawContent() override;
         void drawMenu() override;
 
     private:
-
-        std::vector<lang::PatternData*> &m_patternData;
         std::vector<lang::PatternData*> m_sortedPatternData;
     };
 

@@ -1,49 +1,63 @@
-#include "views/view.hpp"
+#include <hex/views/view.hpp>
 
-#include "imgui.h"
+#include <imgui.h>
 
 #include <functional>
 #include <string>
 #include <vector>
 
-#include <helpers/shared_data.hpp>
+#include <hex/helpers/shared_data.hpp>
 
 namespace hex {
 
 
-    View::View(std::string viewName) : m_viewName(viewName) { }
+    View::View(std::string unlocalizedName) : m_unlocalizedViewName(unlocalizedName) { }
 
     void View::drawMenu() { }
-    bool View::handleShortcut(int key, int mods) { return false; }
+    bool View::handleShortcut(bool keys[512], bool ctrl, bool shift, bool alt) { return false; }
 
-    std::vector<std::function<void()>>& View::getDeferedCalls() {
-        return *SharedData::get().deferredCalls;
+    bool View::isAvailable() {
+        return SharedData::currentProvider != nullptr && SharedData::currentProvider->isAvailable();
     }
 
-    void View::postEvent(Events eventType, const void *userData) {
-        EventManager::post(eventType, userData);
+    std::vector<std::function<void()>>& View::getDeferedCalls() {
+        return SharedData::deferredCalls;
     }
 
     void View::drawCommonInterfaces() {
-        if (ImGui::BeginPopupModal("Error", nullptr, ImGuiWindowFlags_NoResize)) {
+        if (ImGui::BeginPopupModal("hex.common.error"_lang, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("%s", SharedData::errorPopupMessage.c_str());
             ImGui::NewLine();
-            if (ImGui::BeginChild("##scrolling", ImVec2(300, 100))) {
-                ImGui::SetCursorPosX((300 - ImGui::CalcTextSize(View::s_errorMessage.c_str(), nullptr, false).x) / 2.0F);
-                ImGui::TextWrapped("%s", View::s_errorMessage.c_str());
-                ImGui::EndChild();
-            }
-            ImGui::NewLine();
-            ImGui::SetCursorPosX(75);
-            if (ImGui::Button("Okay", ImVec2(150, 20)))
+            ImGui::Separator();
+            if (ImGui::Button("hex.common.okay"_lang) || ImGui::IsKeyDown(ImGuiKey_Escape))
                 ImGui::CloseCurrentPopup();
+
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::BeginPopupModal("hex.common.fatal"_lang, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("%s", SharedData::errorPopupMessage.c_str());
+            ImGui::NewLine();
+            ImGui::Separator();
+            if (ImGui::Button("hex.common.okay"_lang) || ImGui::IsKeyDown(ImGuiKey_Escape)) {
+                ImHexApi::Common::closeImHex();
+                ImGui::CloseCurrentPopup();
+            }
+
             ImGui::EndPopup();
         }
     }
 
     void View::showErrorPopup(std::string_view errorMessage) {
-        View::s_errorMessage = errorMessage;
+        SharedData::errorPopupMessage = errorMessage;
 
-        ImGui::OpenPopup("Error");
+        View::doLater([] { ImGui::OpenPopup("hex.common.error"_lang); });
+    }
+
+    void View::showFatalPopup(std::string_view errorMessage) {
+        SharedData::errorPopupMessage = errorMessage;
+
+        View::doLater([] { ImGui::OpenPopup("hex.common.fatal"_lang); });
     }
 
     bool View::hasViewMenuItemEntry() {
@@ -63,23 +77,20 @@ namespace hex {
         return this->m_windowOpen;
     }
 
-    const std::string View::getName() const {
-        return this->m_viewName;
+    std::string_view View::getUnlocalizedName() const {
+        return this->m_unlocalizedViewName;
     }
 
-    void View::subscribeEvent(Events eventType, std::function<void(const void*)> callback) {
-        EventManager::subscribe(eventType, this, callback);
-    }
-
-    void View::unsubscribeEvent(Events eventType) {
-        EventManager::unsubscribe(eventType, this);
+    void View::discardNavigationRequests() {
+        if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows))
+            ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
     }
 
     void View::doLater(std::function<void()> &&function) {
-        SharedData::get().deferredCalls->push_back(function);
+        SharedData::deferredCalls.push_back(function);
     }
 
-    void View::confirmButtons(const char *textLeft, const char *textRight, std::function<void()> leftButtonFn, std::function<void()> rightButtonFn) {
+    void View::confirmButtons(const char *textLeft, const char *textRight, const std::function<void()> &leftButtonFn, const std::function<void()> &rightButtonFn) {
         auto width = ImGui::GetWindowWidth();
         ImGui::SetCursorPosX(width / 9);
         if (ImGui::Button(textLeft, ImVec2(width / 3, 0)))

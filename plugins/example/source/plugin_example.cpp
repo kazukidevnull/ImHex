@@ -1,6 +1,6 @@
-#include <plugin.hpp>
+#include <hex/plugin.hpp>
 
-#include <views/view.hpp>
+#include <hex/views/view.hpp>
 
 class ViewExample : public hex::View {
 public:
@@ -15,17 +15,9 @@ public:
     }
 };
 
-IMHEX_PLUGIN {
+IMHEX_PLUGIN_SETUP("Example", "WerWolv", "Example plugin used as template for plugin devs") {
 
-    View* createView() {
-        return new ViewExample();
-    }
-
-    void drawToolsEntry() {
-        if (ImGui::CollapsingHeader("Example Tool")) {
-            ImGui::Text("Custom Plugin tool");
-        }
-    }
+    ContentRegistry::Views::add<ViewExample>();
 
 }
 

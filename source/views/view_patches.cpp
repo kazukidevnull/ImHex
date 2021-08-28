@@ -1,8 +1,8 @@
 #include "views/view_patches.hpp"
 
-#include "providers/provider.hpp"
+#include <hex/providers/provider.hpp>
 
-#include "helpers/utils.hpp"
+#include <hex/helpers/utils.hpp>
 #include "helpers/project_file_handler.hpp"
 
 #include <string>
@@ -11,37 +11,37 @@ using namespace std::literals::string_literals;
 
 namespace hex {
 
-    ViewPatches::ViewPatches() : View("Patches") {
-        View::subscribeEvent(Events::ProjectFileStore, [this](const void*) {
-            auto provider = *SharedData::get().currentProvider;
+    ViewPatches::ViewPatches() : View("hex.view.patches.name") {
+        EventManager::subscribe<EventProjectFileStore>(this, []{
+            auto provider = SharedData::currentProvider;
             if (provider != nullptr)
                 ProjectFile::setPatches(provider->getPatches());
         });
 
-        View::subscribeEvent(Events::ProjectFileLoad, [this](const void*) {
-            auto provider = *SharedData::get().currentProvider;
+        EventManager::subscribe<EventProjectFileLoad>(this, []{
+            auto provider = SharedData::currentProvider;
             if (provider != nullptr)
                 provider->getPatches() = ProjectFile::getPatches();
         });
     }
 
     ViewPatches::~ViewPatches() {
-        View::unsubscribeEvent(Events::ProjectFileStore);
-        View::unsubscribeEvent(Events::ProjectFileLoad);
+        EventManager::unsubscribe<EventProjectFileStore>(this);
+        EventManager::unsubscribe<EventProjectFileLoad>(this);
     }
 
     void ViewPatches::drawContent() {
-        if (ImGui::Begin("Patches", &this->getWindowOpenState(), ImGuiWindowFlags_NoCollapse)) {
-            auto provider = *SharedData::get().currentProvider;
+        if (ImGui::Begin(View::toWindowName("hex.view.patches.name").c_str(), &this->getWindowOpenState(), ImGuiWindowFlags_NoCollapse)) {
+            auto provider = SharedData::currentProvider;
 
             if (provider != nullptr && provider->isReadable()) {
 
                 if (ImGui::BeginTable("##patchesTable", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable | ImGuiTableFlags_Sortable |
                                                         ImGuiTableFlags_Reorderable | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
                     ImGui::TableSetupScrollFreeze(0, 1);
-                    ImGui::TableSetupColumn("Offset");
-                    ImGui::TableSetupColumn("Previous Value");
-                    ImGui::TableSetupColumn("Patched Value");
+                    ImGui::TableSetupColumn("hex.view.patches.offset"_lang);
+                    ImGui::TableSetupColumn("hex.view.patches.orig"_lang);
+                    ImGui::TableSetupColumn("hex.view.patches.patch"_lang);
 
                     ImGui::TableHeadersRow();
 
@@ -52,8 +52,7 @@ namespace hex {
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         if (ImGui::Selectable(("##patchLine" + std::to_string(index)).c_str(), false, ImGuiSelectableFlags_SpanAllColumns)) {
-                            Region selectRegion = { address, 1 };
-                            View::postEvent(Events::SelectionChangeRequest, &selectRegion);
+                            EventManager::post<RequestSelectionChange>(Region { address, 1 });
                         }
                         if (ImGui::IsMouseReleased(1) && ImGui::IsItemHovered()) {
                             ImGui::OpenPopup("PatchContextMenu");
@@ -73,7 +72,7 @@ namespace hex {
                     }
 
                     if (ImGui::BeginPopup("PatchContextMenu")) {
-                        if (ImGui::MenuItem("Remove")) {
+                        if (ImGui::MenuItem("hex.view.patches.remove"_lang)) {
                             patches.erase(this->m_selectedPatch);
                             ProjectFile::markDirty();
                         }

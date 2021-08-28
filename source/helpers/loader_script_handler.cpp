@@ -1,8 +1,8 @@
 #include "helpers/loader_script_handler.hpp"
 
-#include "views/view.hpp"
-#include "helpers/utils.hpp"
-#include "providers/provider.hpp"
+#include <hex/views/view.hpp>
+#include <hex/helpers/utils.hpp>
+#include <hex/providers/provider.hpp>
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
@@ -45,12 +45,13 @@ namespace hex {
     }
 
     PyObject* LoaderScript::Py_addBookmark(PyObject *self, PyObject *args) {
-        Bookmark bookmark;
+        u64 address;
+        size_t size;
 
         char *name = nullptr;
         char *comment = nullptr;
 
-        if (!PyArg_ParseTuple(args, "K|n|s|s", &bookmark.region.address, &bookmark.region.size, &name, &comment)) {
+        if (!PyArg_ParseTuple(args, "K|n|s|s", &address, &size, &name, &comment)) {
             PyErr_BadArgument();
             return nullptr;
         }
@@ -60,10 +61,7 @@ namespace hex {
             return nullptr;
         }
 
-        std::copy(name, name + std::strlen(name), std::back_inserter(bookmark.name));
-        std::copy(comment, comment + std::strlen(comment), std::back_inserter(bookmark.comment));
-
-        View::postEvent(Events::AddBookmark, &bookmark);
+        ImHexApi::Bookmarks::add(address, size, name, comment);
 
         Py_RETURN_NONE;
     }
@@ -81,7 +79,7 @@ namespace hex {
             return nullptr;
         }
 
-        SCOPE_EXIT( Py_DECREF(instance); );
+        ON_SCOPE_EXIT { Py_DECREF(instance); };
 
         if (instance->ob_type->tp_base == nullptr || instance->ob_type->tp_base->tp_name != "ImHexType"s) {
             PyErr_SetString(PyExc_TypeError, "class type must extend from ImHexType");
@@ -106,7 +104,7 @@ namespace hex {
             return nullptr;
         }
 
-        SCOPE_EXIT( Py_DECREF(list); );
+        ON_SCOPE_EXIT { Py_DECREF(list); };
 
         std::string code = keyword + " " + instance->ob_type->tp_name + " {\n";
 
@@ -165,7 +163,7 @@ namespace hex {
 
         code += "};\n";
 
-        View::postEvent(Events::AppendPatternLanguageCode, code.c_str());
+        EventManager::post<RequestAppendPatternLanguageCode>(code);
 
         Py_RETURN_NONE;
     }
@@ -179,10 +177,14 @@ namespace hex {
     }
 
     bool LoaderScript::processFile(std::string_view scriptPath) {
-        Py_SetProgramName(Py_DecodeLocale(mainArgv[0], nullptr));
+        Py_SetProgramName(Py_DecodeLocale((SharedData::mainArgv)[0], nullptr));
 
-        if (std::filesystem::exists(std::filesystem::path(mainArgv[0]).parent_path().string() + "/lib/python" PYTHON_VERSION_MAJOR_MINOR))
-            Py_SetPythonHome(Py_DecodeLocale(std::filesystem::path(mainArgv[0]).parent_path().string().c_str(), nullptr));
+        for (const auto &dir : hex::getPath(ImHexPath::Python)) {
+            if (std::filesystem::exists(std::filesystem::path(dir + "/lib/python" PYTHON_VERSION_MAJOR_MINOR))) {
+                Py_SetPythonHome(Py_DecodeLocale(dir.c_str(), nullptr));
+                break;
+            }
+        }
 
         PyImport_AppendInittab("_imhex", []() -> PyObject* {
 

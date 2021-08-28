@@ -1,31 +1,30 @@
 #include "views/view_pattern_data.hpp"
 
-#include "providers/provider.hpp"
-#include "lang/pattern_data.hpp"
+#include <hex/providers/provider.hpp>
+#include <hex/lang/pattern_data.hpp>
 
 namespace hex {
 
-    ViewPatternData::ViewPatternData(std::vector<lang::PatternData*> &patternData)
-        : View("Pattern Data"), m_patternData(patternData) {
+    ViewPatternData::ViewPatternData() : View("hex.view.pattern_data.name") {
 
-        this->subscribeEvent(Events::PatternChanged, [this](auto data) {
+        EventManager::subscribe<EventPatternChanged>(this, [this]() {
             this->m_sortedPatternData.clear();
         });
     }
 
     ViewPatternData::~ViewPatternData() {
-        this->unsubscribeEvent(Events::PatternChanged);
+        EventManager::unsubscribe<EventPatternChanged>(this);
     }
 
     static bool beginPatternDataTable(prv::Provider* &provider, const std::vector<lang::PatternData*> &patterns, std::vector<lang::PatternData*> &sortedPatterns) {
         if (ImGui::BeginTable("##patterndatatable", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable | ImGuiTableFlags_Sortable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
             ImGui::TableSetupScrollFreeze(0, 1);
-            ImGui::TableSetupColumn("Name", 0, -1, ImGui::GetID("name"));
-            ImGui::TableSetupColumn("Color", 0, -1, ImGui::GetID("color"));
-            ImGui::TableSetupColumn("Offset", 0, -1, ImGui::GetID("offset"));
-            ImGui::TableSetupColumn("Size", 0, -1, ImGui::GetID("size"));
-            ImGui::TableSetupColumn("Type", 0, -1, ImGui::GetID("type"));
-            ImGui::TableSetupColumn("Value", 0, -1, ImGui::GetID("value"));
+            ImGui::TableSetupColumn("hex.view.pattern_data.name"_lang, 0, -1, ImGui::GetID("name"));
+            ImGui::TableSetupColumn("hex.view.pattern_data.color"_lang, 0, -1, ImGui::GetID("color"));
+            ImGui::TableSetupColumn("hex.view.pattern_data.offset"_lang, 0, -1, ImGui::GetID("offset"));
+            ImGui::TableSetupColumn("hex.view.pattern_data.size"_lang, 0, -1, ImGui::GetID("size"));
+            ImGui::TableSetupColumn("hex.view.pattern_data.type"_lang, 0, -1, ImGui::GetID("type"));
+            ImGui::TableSetupColumn("hex.view.pattern_data.value"_lang, 0, -1, ImGui::GetID("value"));
 
             auto sortSpecs = ImGui::TableGetSortSpecs();
 
@@ -49,16 +48,16 @@ namespace hex {
     }
 
     void ViewPatternData::drawContent() {
-        if (ImGui::Begin("Pattern Data", &this->getWindowOpenState(), ImGuiWindowFlags_NoCollapse)) {
-            auto provider = *SharedData::get().currentProvider;
+        if (ImGui::Begin(View::toWindowName("hex.view.pattern_data.name").c_str(), &this->getWindowOpenState(), ImGuiWindowFlags_NoCollapse)) {
+            auto provider = SharedData::currentProvider;
             if (provider != nullptr && provider->isReadable()) {
 
-                if (beginPatternDataTable(provider, this->m_patternData, this->m_sortedPatternData)) {
+                if (beginPatternDataTable(provider, SharedData::patternData, this->m_sortedPatternData)) {
+                    ImGui::TableHeadersRow();
                     if (this->m_sortedPatternData.size() > 0) {
-                        ImGui::TableHeadersRow();
 
                         for (auto &patternData : this->m_sortedPatternData)
-                            patternData->createEntry(provider);
+                            patternData->draw(provider);
 
                     }
 

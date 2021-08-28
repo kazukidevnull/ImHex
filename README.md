@@ -1,6 +1,6 @@
 <h1 align="center">:mag: ImHex</h1>
 
-<p align="center">A Hex Editor for Reverse Engineers, Programmers and people that value their eye sight when working at 3 AM.</p>
+<p align="center">A Hex Editor for Reverse Engineers, Programmers and people who value their retinas when working at 3 AM.</p>
 
 <p align="center">
   <a title="'Build' workflow Status" href="https://github.com/WerWolv/ImHex/actions?query=workflow%3ABuild"><img alt="'Build' workflow Status" src="https://img.shields.io/github/workflow/status/WerWolv/ImHex/Build?longCache=true&style=for-the-badge&label=Build&logoColor=fff&logo=GitHub%20Actions"></a>
@@ -33,7 +33,7 @@ If you like my work, please consider supporting me on GitHub Sponsors, Patreon o
   - Goto from start, end and current cursor position
 - Custom C++-like pattern language for parsing highlighting a file's content
   - Automatic loading based on MIME type
-  - arrays, pointers, structs, unions, enums, bitfields, using declarations, little and big endian support
+  - arrays, pointers, structs, unions, enums, bitfields, using declarations, little and big endian support, conditionals and much more!
   - Useful error messages, syntax highlighting and error marking
 - Data importing
   - Base64 files
@@ -69,7 +69,7 @@ If you like my work, please consider supporting me on GitHub Sponsors, Patreon o
   - File magic-based file parser and MIME type database
   - Byte distribution graph
   - Entropy graph
-  - Highest and avarage entropy
+  - Highest and average entropy
   - Encrypted / Compressed file detection
 - Helpful tools
   - Itanium and MSVC demangler
@@ -85,15 +85,25 @@ If you like my work, please consider supporting me on GitHub Sponsors, Patreon o
 ![](https://i.imgur.com/xH7xJ4g.png)
 ![](https://i.imgur.com/fhVJYEa.png)
 
+## Pattern Language
+
+The custom C-like Pattern Language developed and used by ImHex is easy to read, understand and learn. A guide with all features of the language can be found [in the wiki](https://github.com/WerWolv/ImHex/wiki/Pattern-Language-Guide) or a simpler version in ImHex under `Help -> Pattern Language Cheat Sheet`
+
 ## Additional Files
 
 For format patterns, includable libraries and magic files, check out the [ImHex-Patterns](https://github.com/WerWolv/ImHex-Patterns) repository. Feel free to PR your own files there as well!
 
 ## Nightly builds
 
-See latest nightly builds on the artifacts result of the Build action [here](https://github.com/WerWolv/ImHex/actions?query=workflow%3ABuild).
+Nightlies are available via GitHub Actions [here](https://github.com/WerWolv/ImHex/actions?query=workflow%3ABuild).
 
-NOTE: **We currently only provide nightly builds for macOS (x86_64)**
+- Windows • __x86_64__
+  - [MSI Installer](https://nightly.link/WerWolv/ImHex/workflows/build/master/Windows%20Installer.zip)
+  - [Portable ZIP](https://nightly.link/WerWolv/ImHex/workflows/build/master/Windows%20Portable%20ZIP.zip)
+- MacOS • __x86_64__
+  - [DMG](https://nightly.link/WerWolv/ImHex/workflows/build/master/macOS%20DMG.zip)
+- Linux • __x86_64__
+  - [ELF](https://nightly.link/WerWolv/ImHex/workflows/build/master/Linux%20ELF.zip)
 
 ## Compiling
 
@@ -101,17 +111,16 @@ You need a C++20 compatible compiler such as GCC 10.2.0 to compile ImHex. Moreov
 
 - GLFW3
 - libmagic, libgnurx, libtre, libintl, libiconv
-- libcrypto
+- libmbedtls
 - capstone
-- nlohmann json
 - Python3
 - freetype2
 - Brew (macOS only)
+- Xcode (macOS only)
 
-### Windows and Linux
+### Windows
 
-Find all-in-one dependency installation scripts for Arch Linux, Fedora, Debian/Ubuntu and/or MSYS2 in [dist](dist).
-
+On Windows, ImHex is built through msys2 / mingw. To install all dependencies, open a mys2 window and run the PKGCONFIG script in the (dist/msys2)[dist/msys2] folder.
 After all the dependencies are installed, run the following commands to build ImHex:
 
 ```sh
@@ -124,8 +133,6 @@ make -j
 ---
 
 To create a standalone zipfile on Windows, get the Python standard library (e.g. from https://github.com/python/cpython/tree/master/Lib) and place the files and folders in `lib/python3.8` next to your built executable. Don't forget to also copy the `libpython3.8.dll` and `libwinpthread-1.dll` from your mingw setup next to the executable.
-
-On both Windows and Linux:
 
 - Copy the files from `python_libs` in the `lib` folder next to your built executable.
 - Place your magic databases in the `magic` folder next to your built executable
@@ -143,6 +150,52 @@ cd build
 CC=$(brew --prefix llvm)/bin/clang CXX=$(brew --prefix llvm)/bin/clang++ PKG_CONFIG_PATH="$(brew --prefix openssl)/lib/pkgconfig":"$(brew --prefix)/lib/pkgconfig" cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j
 ```
+
+Install the ImHex executable as well as libimhex.dylib to wherever ImHex should be installed.
+
+All other files belong in `~/Library/Application Support/imhex`:
+```
+Patterns: ~/Library/Application Support/imhex/patterns
+Pattern Includes: ~/Library/Application Support/imhex/includes
+Magic files: ~/Library/Application Support/imhex/magic
+Python: ~/Library/Application Support/imhex/lib/pythonX.X
+Plugins: ~/Library/Application Support/imhex/plugins
+Configuration: ~/Library/Application Support/imhex/config
+Resources: ~/Library/Application Support/imhex/resources
+```
+
+### Linux
+
+Dependency installation scripts are available for many common Linux distributions in the (/dist)[dist] folder.
+After all the dependencies are installed, run the following commands to build ImHex:
+
+```sh
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make -j
+```
+
+---
+
+Put the ImHex executable into the `/usr/bin` folder.
+Put libimhex.so into the `/usr/lib` folder.
+Configuration files go to `/etc/xdg/imhex` or `~/.config/imhex`.
+All other files belong in `/usr/share/imhex` or `~/.local/share/imhex`:
+
+```
+Patterns: /usr/share/imhex/patterns
+Pattern Includes: /usr/share/imhex/includes
+Magic files: /usr/share/imhex/magic
+Python: /usr/share/imhex/lib/pythonX.X
+Plugins: /usr/share/imhex/plugins
+Configuration: /etc/xdg/imhex/config
+Resources: /usr/share/imhex/resources
+```
+
+All paths follow the XDG Base Directories standard, and can thus be modified
+with the environment variables `XDG_CONFIG_HOME`, `XDG_CONFIG_DIRS`,
+`XDG_DATA_HOME` and `XDG_DATA_DIRS`.
 
 ## Credits
 

@@ -2,9 +2,9 @@
 
 #include <hex.hpp>
 
-#include "imgui.h"
-#include "views/view.hpp"
-#include "lang/pattern_data.hpp"
+#include <imgui.h>
+#include <hex/views/view.hpp>
+#include <hex/lang/pattern_data.hpp>
 
 #include <vector>
 #include <tuple>
@@ -21,8 +21,13 @@ namespace hex {
 
         void drawContent() override;
         void drawMenu() override;
+        bool isAvailable() override { return true; }
 
         bool hasViewMenuItemEntry() override { return false; }
+
+        ImVec2 getMinSize() override {
+            return ImVec2(400, 300);
+        }
 
     private:
         bool m_aboutWindowOpen = false;

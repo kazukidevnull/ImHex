@@ -1,16 +1,17 @@
 #pragma once
 
-#include "helpers/utils.hpp"
-#include "views/view.hpp"
+#include <hex/helpers/utils.hpp>
+#include <hex/views/view.hpp>
+#include "helpers/encoding_file.hpp"
 
-#include "imgui_memory_editor.h"
-#include "ImGuiFileBrowser.h"
+#include <imgui_memory_editor.h>
 
+#include <list>
 #include <tuple>
 #include <random>
 #include <vector>
 
-#include "lang/pattern_data.hpp"
+#include <hex/lang/pattern_data.hpp>
 
 namespace hex {
 
@@ -20,22 +21,21 @@ namespace hex {
 
     class ViewHexEditor : public View {
     public:
-        ViewHexEditor(std::vector<lang::PatternData*> &patternData);
+        ViewHexEditor();
         ~ViewHexEditor() override;
 
         void drawContent() override;
+        void drawAlwaysVisible() override;
         void drawMenu() override;
-        bool handleShortcut(int key, int mods) override;
+        bool handleShortcut(bool keys[512], bool ctrl, bool shift, bool alt) override;
 
     private:
         MemoryEditor m_memoryEditor;
-        imgui_addons::ImGuiFileBrowser m_fileBrowser;
 
-        std::vector<lang::PatternData*> &m_patternData;
         std::map<u64, u32> m_highlightedBytes;
 
-        char m_searchStringBuffer[0xFFFF] = { 0 };
-        char m_searchHexBuffer[0xFFFF] = { 0 };
+        std::vector<char> m_searchStringBuffer;
+        std::vector<char> m_searchHexBuffer;
         SearchFunction m_searchFunction = nullptr;
         std::vector<std::pair<u64, u64>> *m_lastSearchBuffer;
 
@@ -45,20 +45,29 @@ namespace hex {
 
         s64 m_gotoAddress = 0;
 
+        char m_baseAddressBuffer[0x20] = { 0 };
+        u64 m_resizeSize = 0;
+
         std::vector<u8> m_dataToSave;
 
         std::string m_loaderScriptScriptPath;
         std::string m_loaderScriptFilePath;
 
+        hex::EncodingFile m_currEncodingFile;
+        u8 m_highlightAlpha = 0x80;
+
         void drawSearchPopup();
         void drawGotoPopup();
+        void drawEditPopup();
 
-        void openFile(std::string path);
-        bool saveToFile(std::string path, const std::vector<u8>& data);
-        bool loadFromFile(std::string path, std::vector<u8>& data);
+        bool createFile(std::string_view path);
+        void openFile(std::string_view path);
+        bool saveToFile(std::string_view path, const std::vector<u8>& data);
+        bool loadFromFile(std::string_view path, std::vector<u8>& data);
 
         enum class Language { C, Cpp, CSharp, Rust, Python, Java, JavaScript };
         void copyBytes();
+        void pasteBytes();
         void copyString();
         void copyLanguageArray(Language language);
         void copyHexView();

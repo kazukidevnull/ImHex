@@ -2,13 +2,17 @@
 
 #include <filesystem>
 #include <memory>
+#include <string>
 #include <vector>
 
-#include "helpers/utils.hpp"
-#include "views/view.hpp"
+#include <hex/helpers/utils.hpp>
+#include <hex/views/view.hpp>
+
+#include <imgui_imhex_extensions.h>
 
 struct GLFWwindow;
 struct ImGuiSettingsHandler;
+
 
 namespace hex {
 
@@ -19,40 +23,53 @@ namespace hex {
 
         void loop();
 
-        template<derived_from<View> T, typename ... Args>
-        T* addView(Args&& ... args) {
-            this->m_views.emplace_back(new T(std::forward<Args>(args)...));
-
-            return static_cast<T*>(this->m_views.back());
-        }
-
-        friend void *ImHexSettingsHandler_ReadOpenFn(ImGuiContext *ctx, ImGuiSettingsHandler *, const char *);
-        friend void ImHexSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler *handler, void *, const char* line);
-        friend void ImHexSettingsHandler_ApplyAll(ImGuiContext *ctx, ImGuiSettingsHandler *handler);
-        friend void ImHexSettingsHandler_WriteAll(ImGuiContext* ctx, ImGuiSettingsHandler *handler, ImGuiTextBuffer *buf);
-
-        bool setFont(const std::filesystem::path &font_path);
+        static void initNative();
 
     private:
+        void setupNativeWindow();
+        void updateNativeWindow();
+        void drawTitleBar();
+
         void frameBegin();
+        void frame();
         void frameEnd();
+
+        void drawWelcomeScreen();
+        void resetLayout();
 
         void initGLFW();
         void initImGui();
-        void initPlugins();
         void deinitGLFW();
         void deinitImGui();
-        void deinitPlugins();
 
-        GLFWwindow* m_window;
-        std::vector<View*> m_views;
-        std::vector<View*> m_pluginViews;
+        friend void *ImHexSettingsHandler_ReadOpenFn(ImGuiContext *ctx, ImGuiSettingsHandler *, const char *);
+        friend void ImHexSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler *handler, void *, const char* line);
+        friend void ImHexSettingsHandler_WriteAll(ImGuiContext* ctx, ImGuiSettingsHandler *handler, ImGuiTextBuffer *buf);
 
-        float m_globalScale = 1.0f, m_fontScale = 1.0f;
-        bool m_fpsVisible = false;
+        void setFont(const std::filesystem::path &font_path);
+
+        GLFWwindow* m_window = nullptr;
+
+        float m_globalScale = 1.0F, m_fontScale = 1.0F;
+        double m_targetFps = 60.0;
         bool m_demoWindowOpen = false;
+        bool m_layoutConfigured = false;
 
-        static inline std::tuple<int, int> s_currShortcut = { -1, -1 };
+        std::string m_windowTitle;
+
+        double m_lastFrameTime;
+
+        bool m_prevKeysDown[512];
+
+        std::string m_availableUpdate;
+
+        bool m_showTipOfTheDay;
+        std::string m_tipOfTheDay;
+
+        ImGui::Texture m_bannerTexture;
+        ImGui::Texture m_logoTexture;
+
+        std::filesystem::path m_safetyBackupPath;
     };
 
 }

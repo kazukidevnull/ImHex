@@ -6,9 +6,8 @@ dnf install \
   capstone-devel \
   file-devel \
   glfw-devel \
-  glm-devel \
-  json-devel \
   mesa-libGL-devel \
-  openssl-devel \
+  mbedtls-devel \
   python-devel \
-  freetype-devel
+  freetype-devel \
+  gtk3

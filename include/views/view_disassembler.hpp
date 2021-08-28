@@ -1,9 +1,8 @@
 #pragma once
 
-#include "helpers/disassembler.hpp"
-#include "views/view.hpp"
+#include <hex/views/view.hpp>
 
-#include <capstone/capstone.h>
+#include "helpers/disassembler.hpp"
 
 #include <cstdio>
 #include <string>
@@ -31,7 +30,7 @@ namespace hex {
         void drawMenu() override;
 
     private:
-        bool m_shouldInvalidate = false;
+        bool m_disassembling = false;
 
         u64 m_baseAddress = 0;
         u64 m_codeRegion[2] = { 0 };
@@ -43,7 +42,7 @@ namespace hex {
 
         std::vector<Disassembly> m_disassembly;
 
-
+        void disassemble();
     };
 
 }

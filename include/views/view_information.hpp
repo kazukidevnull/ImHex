@@ -1,6 +1,6 @@
 #pragma once
 
-#include "views/view.hpp"
+#include <hex/views/view.hpp>
 
 #include <array>
 #include <cstdio>
@@ -26,13 +26,17 @@ namespace hex {
         float m_highestBlockEntropy = 0;
         std::vector<float> m_blockEntropy;
 
-        std::array<float, 256> m_valueCounts = { 0 };
-        bool m_shouldInvalidate = false;
+        double m_entropyHandlePosition;
+
+        std::array<ImU64, 256> m_valueCounts = { 0 };
+        bool m_analyzing = false;
 
         std::pair<u64, u64> m_analyzedRegion = { 0, 0 };
 
         std::string m_fileDescription;
         std::string m_mimeType;
+
+        void analyze();
     };
 
 }

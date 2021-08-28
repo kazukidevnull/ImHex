@@ -1,56 +1,49 @@
-#include "helpers/utils.hpp"
+#include <hex.hpp>
+
 #include "window.hpp"
 
-#include "lang/pattern_data.hpp"
-#include "views/view_hexeditor.hpp"
-#include "views/view_pattern.hpp"
-#include "views/view_pattern_data.hpp"
-#include "views/view_hashes.hpp"
-#include "views/view_information.hpp"
-#include "views/view_help.hpp"
-#include "views/view_tools.hpp"
-#include "views/view_strings.hpp"
-#include "views/view_data_inspector.hpp"
-#include "views/view_disassembler.hpp"
-#include "views/view_bookmarks.hpp"
-#include "views/view_patches.hpp"
-#include "views/view_command_palette.hpp"
-
-#include "providers/provider.hpp"
-
-#include <vector>
-
-int mainArgc;
-char **mainArgv;
+#include "init/splash_window.hpp"
+#include "init/tasks.hpp"
 
 int main(int argc, char **argv) {
-    mainArgc = argc;
-    mainArgv = argv;
+    using namespace hex;
 
-    hex::Window window;
+    // Initialization
+    {
+        Window::initNative();
 
-    // Shared Data
-    std::vector<hex::lang::PatternData*> patternData;
+        init::WindowSplash splashWindow(argc, argv);
 
-    // Create views
-    window.addView<hex::ViewHexEditor>(patternData);
-    window.addView<hex::ViewPattern>(patternData);
-    window.addView<hex::ViewPatternData>(patternData);
-    window.addView<hex::ViewDataInspector>();
-    window.addView<hex::ViewHashes>();
-    window.addView<hex::ViewInformation>();
-    window.addView<hex::ViewStrings>();
-    window.addView<hex::ViewDisassembler>();
-    window.addView<hex::ViewBookmarks>();
-    window.addView<hex::ViewPatches>();
-    window.addView<hex::ViewTools>();
-    window.addView<hex::ViewCommandPalette>();
-    window.addView<hex::ViewHelp>();
+        for (const auto &[name, task] : init::getInitTasks())
+            splashWindow.addStartupTask(name, task);
 
-    if (argc > 1)
-        hex::View::postEvent(hex::Events::FileDropped, argv[1]);
+        if (!splashWindow.loop())
+            init::getInitArguments().push_back({ "tasks-failed", { } });
+    }
 
-    window.loop();
+    // Clean up
+    ON_SCOPE_EXIT {
+        for (const auto &[name, task] : init::getExitTasks())
+            task();
+    };
 
-    return 0;
+    // Main window
+    {
+        Window window;
+
+        if (argc == 1)
+            ; // No arguments provided
+        else if (argc == 2)
+            EventManager::post<EventFileDropped>(argv[1]);
+        else {
+            hex::log::fatal("Usage: imhex [file_name]");
+            return EXIT_FAILURE;
+        }
+
+        hex::log::info("Welcome to ImHex!");
+
+        window.loop();
+    }
+
+    return EXIT_SUCCESS;
 }

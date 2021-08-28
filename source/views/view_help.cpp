@@ -1,9 +1,10 @@
 #include "views/view_help.hpp"
 
+#include <imgui_imhex_extensions.h>
+
 namespace hex {
 
-    ViewHelp::ViewHelp() : View("Help") {
-        this->getWindowOpenState() = true;
+    ViewHelp::ViewHelp() : View("hex.view.help.about.name") {
     }
 
     ViewHelp::~ViewHelp() {
@@ -15,45 +16,137 @@ namespace hex {
         ImGui::TextColored(ImVec4(0.6F, 0.6F, 1.0F, 1.0F), title.c_str());
     }
 
+    static void drawBuiltinFunction(
+        const std::string &return_type,
+        const std::string &name,
+        const std::string &arguments,
+        const std::string &description
+    ) {
+        ImGui::Bullet();
+        ImGui::TextColored(ImVec4(0.3F, 0.7F, 0.2F, 1.0F), return_type.c_str());
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(0.57F, 0.24F, 0.69F, 1.0F), name.c_str());
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(0.71F, 0.19F, 0.31F, 1.0F), "(");
+        ImGui::SameLine();
+        ImGui::Text("%s", arguments.c_str());
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(0.71F, 0.19F, 0.31F, 1.0F), ")");
+        ImGui::SameLine();
+        ImGui::TextWrapped(" - %s", description.c_str());
+    }
+
     static void drawCodeSegment(const std::string &id, const std::string &code) {
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.2F, 0.2F, 0.2F, 0.3F));
-        ImGui::BeginChild(id.c_str(), ImVec2(-1, ImGui::CalcTextSize(code.c_str()).y));
-
-        ImGui::Text("%s", code.c_str());
-
+        if (ImGui::BeginChild(id.c_str(), ImVec2(-1, ImGui::CalcTextSize(code.c_str()).y))) {
+            ImGui::Text("%s", code.c_str());
+        }
         ImGui::EndChild();
+
         ImGui::NewLine();
         ImGui::PopStyleColor();
     };
 
+    static void drawUnaryBulletPoint(const std::string &op, const std::string &name) {
+        ImGui::Bullet();
+        ImGui::TextWrapped("a %s b - %s", op.c_str(), name.c_str());
+    }
 
     void ViewHelp::drawAboutPopup() {
-        if (ImGui::BeginPopupModal("About", &this->m_aboutWindowOpen, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("ImHex Hex Editor v%s by WerWolv", IMHEX_VERSION);
-            ImGui::Text("%s@%s", GIT_BRANCH, GIT_COMMIT_HASH);
-            ImGui::NewLine();
-            ImGui::Text("Source code available on GitHub:"); ImGui::SameLine();
-            ImGui::TextColored(ImVec4(0.4F, 0.4F, 0.8F, 1.0F), "WerWolv/ImHex   ");
+        if (ImGui::BeginPopupModal(View::toWindowName("hex.view.help.about.name").c_str(), &this->m_aboutWindowOpen, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("ImHex Hex Editor v%s by WerWolv - " ICON_FA_CODE_BRANCH, IMHEX_VERSION);
+            #if defined(GIT_BRANCH) && defined(GIT_COMMIT_HASH)
+                ImGui::SameLine();
+                if (ImGui::Hyperlink(hex::format("{0}@{1}", GIT_BRANCH, GIT_COMMIT_HASH).c_str()))
+                    hex::openWebpage("https://github.com/WerWolv/ImHex/commit/" GIT_COMMIT_HASH);
+            #endif
+            ImGui::TextUnformatted("hex.view.help.about.translator"_lang);
+
+
+            ImGui::TextUnformatted("hex.view.help.about.source"_lang); ImGui::SameLine();
+            if (ImGui::Hyperlink("WerWolv/ImHex"))
+                hex::openWebpage("https://github.com/WerWolv/ImHex");
             ImGui::NewLine();
 
-            ImGui::Text("Libraries used");
+            ImGui::TextUnformatted("hex.view.help.about.donations"_lang);
+            ImGui::Separator();
+
+            constexpr const char* Links[] = { "https://werwolv.net/donate", "https://www.patreon.com/werwolv", "https://github.com/sponsors/WerWolv" };
+
+            ImGui::TextWrapped("hex.view.help.about.thanks"_lang);
+
+            ImGui::NewLine();
+
+            for (auto &link : Links) {
+                if (ImGui::Hyperlink(link))
+                    hex::openWebpage(link);
+            }
+            ImGui::NewLine();
+
+            const auto Link = [](std::string_view label, std::string_view url) {
+                if (ImGui::BulletHyperlink(label.data()))
+                    hex::openWebpage(url.data());
+            };
+
+            ImGui::TextUnformatted("hex.view.help.about.libs"_lang);
             ImGui::Separator();
             ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.2F, 0.2F, 0.2F, 0.3F));
-            ImGui::BulletText("ImGui by ocornut");
-            ImGui::BulletText("imgui_club by ocornut");
-            ImGui::BulletText("ImGui-Addons by gallickgunner");
-            ImGui::BulletText("ImGuiColorTextEdit by BalazsJako");
-            ImGui::BulletText("capstone by aquynh");
-            ImGui::BulletText("JSON for Modern C++ by nlohmann");
+            Link("ImGui by ocornut", "https://github.com/ocornut/imgui");
+            Link("imgui_club by ocornut", "https://github.com/ocornut/imgui_club");
+            Link("imnodes by Nelarius", "https://github.com/Nelarius/imnodes");
+            Link("ImGuiColorTextEdit by BalazsJako", "https://github.com/BalazsJako/ImGuiColorTextEdit");
+            Link("ImPlot by epezent", "https://github.com/epezent/implot");
+            Link("capstone by aquynh", "https://github.com/aquynh/capstone");
+            Link("JSON for Modern C++ by nlohmann", "https://github.com/nlohmann/json");
+            Link("YARA by VirusTotal", "https://github.com/VirusTotal/yara");
+            Link("Native File Dialog Extended by btzy and mlabbe", "https://github.com/btzy/nativefiledialog-extended");
             ImGui::NewLine();
-            ImGui::BulletText("GNU libmagic");
-            ImGui::BulletText("OpenSSL libcrypto");
-            ImGui::BulletText("GLFW3");
-            ImGui::BulletText("LLVM");
-            ImGui::BulletText("Python 3");
-            ImGui::BulletText("FreeType");
+            Link("GNU libmagic", "http://www.darwinsys.com/file/");
+            Link("GLFW3", "https://github.com/glfw/glfw");
+            Link("LLVM", "https://github.com/llvm/llvm-project");
+            Link("Python 3", "https://github.com/python/cpython");
+            Link("FreeType", "https://gitlab.freedesktop.org/freetype/freetype");
+            Link("Mbed TLS", "https://github.com/ARMmbed/mbedtls");
 
             ImGui::PopStyleColor();
+
+            if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_Escape)))
+                ImGui::CloseCurrentPopup();
+
+            ImGui::NewLine();
+            ImGui::TextUnformatted("hex.view.help.about.paths"_lang);
+            ImGui::Separator();
+
+            if (ImGui::BeginTable("##imhex_paths", 2, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+                ImGui::TableSetupScrollFreeze(0, 1);
+                ImGui::TableSetupColumn("Type");
+                ImGui::TableSetupColumn("Paths");
+
+                constexpr std::array<std::pair<const char*, ImHexPath>, 8> PathTypes = {{
+                    { "Resources", ImHexPath::Resources },
+                    { "Config", ImHexPath::Config },
+                    { "Magic", ImHexPath::Magic },
+                    { "Patterns", ImHexPath::Patterns },
+                    { "Patterns Includes", ImHexPath::PatternsInclude },
+                    { "Plugins", ImHexPath::Plugins },
+                    { "Python Scripts", ImHexPath::Python },
+                    { "Yara Patterns", ImHexPath::Yara }
+                }};
+
+                ImGui::TableHeadersRow();
+                for (const auto &[name, type] : PathTypes) {
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::TextUnformatted(name);
+
+                    ImGui::TableNextColumn();
+                    for (auto &path : hex::getPath(type))
+                        ImGui::TextUnformatted(path.c_str());
+                }
+
+                ImGui::EndTable();
+            }
+
             ImGui::EndPopup();
         }
     }
@@ -62,7 +155,7 @@ namespace hex {
         if (!this->m_patternHelpWindowOpen) return;
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(450, 300), ImVec2(2000, 1000));
-        if (ImGui::Begin("Pattern Language Cheat Sheet", &this->m_patternHelpWindowOpen)) {
+        if (ImGui::Begin(View::toWindowName("hex.view.help.pattern_cheat_sheet").c_str(), &this->m_patternHelpWindowOpen)) {
             ImGui::Text("ImHex Pattern Language Cheat Sheet");
             ImGui::Separator();
             ImGui::NewLine();
@@ -91,7 +184,7 @@ namespace hex {
             ImGui::TextWrapped(
                     "The following built-in types are available for use");
             drawCodeSegment("built-in",
-                    "u8, s8\n"
+                    "u8, s8, char, bool\n"
                     "u16, s16\n"
                     "u32, s32\n"
                     "u64, s64\n"
@@ -125,6 +218,14 @@ namespace hex {
                 "};"
             );
 
+            drawTitle("Variable placement");
+            ImGui::TextWrapped(
+                    "In order to highlight bytes and displaying their value in the pattern data window, "
+                    "a variable needs to be created and placed in memory. The following line of code creates"
+                    "a unsigned 32 bit variable named data and places it at offset 0x100."
+                    );
+            drawCodeSegment("var placement", "u32 data @ 0x100;");
+
             drawTitle("Unions");
             ImGui::TextWrapped(
                     "A union is used to make two or more variables occupy the same region of memory. "
@@ -143,6 +244,40 @@ namespace hex {
                     "The leading type is treated as the data being pointed to and the trailing type as the size of the pointer.");
             drawCodeSegment("pointer",
                             "Data *data : u16;"
+            );
+
+            drawTitle("Built-in Functions");
+            drawBuiltinFunction(
+                "u64", "findSequence", ("u32 index, u8 ... bytes"),
+                "find the `index`th occurence of the list of `bytes`"
+            );
+            drawBuiltinFunction(
+                "u(size * 8)", "readUnsigned", ("u64 address, u8 size"),
+                "read `size` bytes at `address` as little-endian unsigned integer"
+            );
+            drawBuiltinFunction(
+                "s(size * 8)", "readSigned", ("u64 address, u8 size"),
+                "read `size` bytes at `address` as little-endian signed integer"
+            );
+            drawBuiltinFunction(
+                "u64", "alignTo", ("u64 value, u64 alignment"),
+                "returns the smallest value divisible by `alignment` that is greater or equal to `value`"
+            );
+            drawBuiltinFunction(
+                "void", "print", ("values..."),
+                "output debugging information to pattern console"
+            );
+            drawBuiltinFunction(
+                "void", "assert", ("condition, message"),
+                "assert that a condition holds, aborting execution and displaying `message` if false"
+            );
+            drawBuiltinFunction(
+                "void", "warnAssert", ("condition, message"),
+                "assert that a condition holds, printing `message` as a warning if false"
+            );
+            drawBuiltinFunction(
+                "u64", "dataSize", (""),
+                "return the size of the current file"
             );
 
             drawTitle("Bitfields");
@@ -179,6 +314,36 @@ namespace hex {
                             "using magic_t = u32;"
             );
 
+            drawTitle("Math Expressions");
+            ImGui::TextWrapped(
+                "In any place where a numeric value is required, a mathematical expression can be"
+                " inserted. This can be as easy as 1 + 1 but can get much more complex as well by"
+                " accessing values within structs or enum constants. These expressions work the"
+                " same as in basically every other language as well with the following operators"
+                " being supported:"
+            );
+            drawUnaryBulletPoint("+", "Addition");
+            drawUnaryBulletPoint("-", "Subtraction");
+            drawUnaryBulletPoint("*", "Multiplication");
+            drawUnaryBulletPoint("/", "Division");
+            drawUnaryBulletPoint("%", "Modulus");
+            drawUnaryBulletPoint(">>", "Bit Right Shift");
+            drawUnaryBulletPoint("<<", "Bit Left Shift");
+            drawUnaryBulletPoint("&", "Bitwise AND");
+            drawUnaryBulletPoint("|", "Bitwise OR");
+            drawUnaryBulletPoint("^", "Bitwise XOR");
+            drawUnaryBulletPoint("==", "Equality comparison");
+            drawUnaryBulletPoint("!=", "Inequality comparison");
+            drawUnaryBulletPoint(">", "Greater-than comparison");
+            drawUnaryBulletPoint(">=", "Greater-or-equals comparison");
+            drawUnaryBulletPoint("<", "Less-than comparison");
+            drawUnaryBulletPoint("<=", "Less-or-Equal comparison");
+            drawUnaryBulletPoint("&&", "Boolean AND");
+            drawUnaryBulletPoint("||", "Boolean OR");
+            drawUnaryBulletPoint("^^", "Boolean XOR");
+            ImGui::Bullet(); ImGui::Text("a ? b : c - Ternary comparison");
+            ImGui::Bullet(); ImGui::Text("$ - Current offset");
+
             drawTitle("Comments");
             ImGui::TextWrapped(
                     "To create a comment the C // or /*  */ syntax can be used. //-style comments end at the next new line "
@@ -188,14 +353,6 @@ namespace hex {
                             "/* This is a\n"
                             "multiline comment */"
             );
-
-            drawTitle("Variable placement");
-            ImGui::TextWrapped(
-                    "In order to highlight bytes and displaying their value in the pattern data window, "
-                    "a variable needs to be created and placed in memory. The following line of code creates"
-                    "a unsigned 32 bit variable named data and places it at offset 0x100."
-                    );
-            drawCodeSegment("var placement", "u32 data @ 0x100;");
         }
         ImGui::End();
     }
@@ -204,7 +361,7 @@ namespace hex {
         if (!this->m_mathHelpWindowOpen) return;
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(450, 300), ImVec2(2000, 1000));
-        if (ImGui::Begin("Calculator Cheat Sheet", &this->m_mathHelpWindowOpen)) {
+        if (ImGui::Begin(View::toWindowName("hex.view.help.calc_cheat_sheet").c_str(), &this->m_mathHelpWindowOpen)) {
             ImGui::Text("ImHex Math Evaluator Cheat Sheet");
             ImGui::Separator();
             ImGui::NewLine();
@@ -276,23 +433,29 @@ namespace hex {
     }
 
     void ViewHelp::drawContent() {
+        if (!this->m_aboutWindowOpen && !this->m_mathHelpWindowOpen && !this->m_patternHelpWindowOpen)
+            this->getWindowOpenState() = false;
+
         this->drawAboutPopup();
         this->drawPatternHelpPopup();
         this->drawMathEvaluatorHelp();
     }
 
     void ViewHelp::drawMenu() {
-        if (ImGui::BeginMenu("Help")) {
-            if (ImGui::MenuItem("About", "")) {
-                View::doLater([] { ImGui::OpenPopup("About"); });
+        if (ImGui::BeginMenu("hex.menu.help"_lang)) {
+            if (ImGui::MenuItem("hex.view.help.about.name"_lang, "")) {
+                View::doLater([] { ImGui::OpenPopup(View::toWindowName("hex.view.help.about.name").c_str()); });
                 this->m_aboutWindowOpen = true;
+                this->getWindowOpenState() = true;
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Pattern Language Cheat Sheet", "")) {
+            if (ImGui::MenuItem("hex.view.help.pattern_cheat_sheet"_lang, "")) {
                 this->m_patternHelpWindowOpen = true;
+                this->getWindowOpenState() = true;
             }
-            if (ImGui::MenuItem("Calculator Cheat Sheet", "")) {
+            if (ImGui::MenuItem("hex.view.help.calc_cheat_sheet"_lang, "")) {
                 this->m_mathHelpWindowOpen = true;
+                this->getWindowOpenState() = true;
             }
             ImGui::EndMenu();
         }
